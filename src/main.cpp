@@ -146,8 +146,18 @@ int main(int argc, const char **argv) {
         "tmux show-environment session_color | sed 's/.*=//'"
     );
 
+    std::string themedColor = "";
+
     if (colorEnv.size()) {
-        color = colorEnv.c_str();
+        themedColor = execGetline(
+            "awk '/^" + colorEnv + " /{print $2}' /Users/jakey/.cache/active_theme"
+        );
+        if (themedColor.size()) {
+            color = themedColor.c_str();
+        }
+        else {
+            color = colorEnv.c_str();
+        }
     }
     else {
         color = session_title == "scratch" ? "cyan" : "brightblack";
