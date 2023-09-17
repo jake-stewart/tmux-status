@@ -150,7 +150,7 @@ int main(int argc, const char **argv) {
         color = colorEnv.c_str();
     }
     else {
-        color = session_title == "main" ? "cyan" : "brightblack";
+        color = session_title == "scratch" ? "cyan" : "brightblack";
     }
 
     BlockRow left_row = createLeftRow();
