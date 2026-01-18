@@ -1,61 +1,76 @@
 #include "../include/block_row.hpp"
 #include "../include/color.hpp"
+#include "../include/util.hpp"
 
-BlockRow::BlockRow(std::vector<Block*>& blocks) {
-    m_blocks = blocks;
+BlockRow::BlockRow() {}
+
+BlockRow::BlockRow(std::vector<Block> blocks) {
+    blocks = blocks;
 }
 
-bool BlockRow::click(int pos) {
+bool BlockRow::click(int pos) const {
     int total = 0;
-    for (Block *block : m_blocks) {
-        if (pos >= total && pos < total + block->length()) {
-            block->click();
+    for (const Block &block : blocks) {
+        if (pos >= total && pos < total + block.length()) {
+            block.click();
             return true;
         }
-        total += block->length();
+        total += block.length();
     }
     return false;
 }
 
-int BlockRow::length() {
+bool BlockRow::drag(int pos) const {
     int total = 0;
-    for (int i = 0; i < m_blocks.size(); i++) {
-        total += m_blocks[i]->length();
+    for (const Block &block : blocks) {
+        if (pos >= total && pos < total + block.length()) {
+            block.drag();
+            return true;
+        }
+        total += block.length();
+    }
+    return false;
+}
+
+int BlockRow::length() const {
+    int total = 0;
+    for (int i = 0; i < blocks.size(); i++) {
+        total += blocks[i].length();
     }
     return total;
 }
 
 void BlockRow::clear() {
-    m_blocks.clear();
+    blocks.clear();
 }
 
 void BlockRow::shorten(int target, bool from_back) {
-    while (m_blocks.size() && length() > target) {
+    while (blocks.size() && length() > target) {
         if (from_back) {
-            m_blocks.pop_back();
+            blocks.pop_back();
         }
         else {
-            m_blocks.erase(m_blocks.begin());
+            blocks.erase(blocks.begin());
         }
     }
 }
 
 void BlockRow::removeEmpty() {
     int offset = 0;
-    for (int i = 0; i < m_blocks.size(); i++) {
-        if (!m_blocks[i]->length()) {
+    for (int i = 0; i < blocks.size(); i++) {
+        if (!blocks[i].length()) {
             offset++;
         }
         else {
-            m_blocks[i - offset] = m_blocks[i];
+            blocks[i - offset] = blocks[i];
         }
     }
-    m_blocks.resize(m_blocks.size() - offset);
+    blocks.resize(blocks.size() - offset);
 }
 
-void BlockRow::print() {
-    for (int i = 0; i < m_blocks.size(); i++) {
-        m_blocks[i]->print();
+void BlockRow::print() const {
+    for (int i = 0; i < blocks.size(); i++) {
+        blocks[i].print();
     }
 }
 
@@ -74,4 +89,35 @@ int resize(BlockRow& left_row, BlockRow& right_row, int width) {
         }
     }
     return remaining;
+}
+
+const Block *BlockRow::at(int pos) const {
+    int total = 0;
+    for (int i = 0; i < blocks.size(); i++) {
+        if (pos >= total && pos < total + blocks[i].length()) {
+            return &blocks[i];
+        }
+        total += blocks[i].length();
+    }
+    return NULL;
+}
+
+int BlockRow::positionOf(const Block *block) const {
+    int total = 0;
+    for (int i = 0; i < blocks.size(); i++) {
+        if (block == &blocks[i]) {
+            return total;
+        }
+        total += blocks[i].length();
+    }
+    return -1;
+}
+
+int BlockRow::indexOf(const Block *block) const {
+    for (int i = 0; i < blocks.size(); i++) {
+        if (block == &blocks[i]) {
+            return i;
+        }
+    }
+    return -1;
 }

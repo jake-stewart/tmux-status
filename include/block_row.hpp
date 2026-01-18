@@ -1,19 +1,21 @@
 #include <vector>
 #include "block.hpp"
 
-class BlockRow
+struct BlockRow
 {
-private:
-    std::vector<Block*> m_blocks;
-
-public:
-    BlockRow(std::vector<Block*>& blocks);
-    bool click(int pos);
-    int length();
+    std::vector<Block> blocks;
+    BlockRow(std::vector<Block> blocks);
+    BlockRow();
+    bool click(int pos) const;
+    bool drag(int pos) const;
+    int length() const;
     void clear();
     void shorten(int target, bool from_back);
     void removeEmpty();
-    void print();
+    void print() const;
+    const Block *at(int pos) const;
+    int positionOf(const Block *block) const;
+    int indexOf(const Block *block) const;
 };
 
 int resize(BlockRow& left_row, BlockRow& right_row, int width);

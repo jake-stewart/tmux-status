@@ -26,3 +26,17 @@ std::string getTime(const char *fmt) {
     strftime(buffer, sizeof(buffer), fmt, timeinfo);
     return buffer;
 }
+
+int display_width(const char *s) {
+    int width = 0;
+    while (*s) {
+        wchar_t wc;
+        int len = mbtowc(&wc, s, MB_CUR_MAX);
+        if (len <= 0) {
+            break;
+        }
+        width += wcwidth(wc);
+        s += len;
+    }
+    return width;
+}

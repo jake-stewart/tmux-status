@@ -1,10 +1,6 @@
 #include "../include/block.hpp"
 #include "../include/color.hpp"
-
-#include <locale>
-#include <codecvt>
-
-std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+#include "../include/util.hpp"
 
 BlockSpan& BlockSpan::bold() {
     m_attr = "bold";
@@ -28,10 +24,10 @@ BlockSpan& BlockSpan::bg(const char *bg) {
 
 BlockSpan::BlockSpan(std::string text) {
     m_text = text;
-    m_size = converter.from_bytes(m_text).size();
+    m_size = display_width(m_text.c_str());
 }
 
-void BlockSpan::print() {
+void BlockSpan::print() const {
     std::string open = "";
     std::string close = "";
 
@@ -69,39 +65,48 @@ void BlockSpan::print() {
     setCurrentBg(m_bg);
 }
 
-int BlockSpan::length() {
+int BlockSpan::length() const {
     return m_size;
 }
 
-void NO_OP() {
+void NO_OP(const Block *block) {
 }
 
 Block::Block() {
     this->m_onClick = NO_OP;
+    this->m_onDrag = NO_OP;
 }
 
 void Block::add(BlockSpan span) {
     m_spans.push_back(span);
 }
 
-int Block::length() {
+int Block::length() const {
     int total = 0;
-    for (BlockSpan& span : m_spans) {
+    for (const BlockSpan& span : m_spans) {
         total += span.length();
     }
     return total;
 }
 
-void Block::print() {
-    for (BlockSpan& span : m_spans) {
+void Block::print() const {
+    for (const BlockSpan& span : m_spans) {
         span.print();
     }
 }
 
-void Block::onClick(std::function<void (void)> callback) {
+void Block::onClick(std::function<void (const Block *block)> callback) {
     m_onClick = callback;
 }
 
-void Block::click() {
-    m_onClick();
+void Block::click() const {
+    m_onClick(this);
+}
+
+void Block::onDrag(std::function<void (const Block *block)> callback) {
+    m_onDrag = callback;
+}
+
+void Block::drag() const {
+    m_onDrag(this);
 }

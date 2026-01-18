@@ -13,10 +13,12 @@
 #define GREY_5 "colour237"
 #define GREY_6 "colour238"
 
-#define DEFAULT_BG GREY_2
-#define DEFAULT_FG DEFAULT
-
 const char* getCurrentFg();
 const char* getCurrentBg();
+const char* getDefaultFg();
+const char* getDefaultBg();
+
 void setCurrentFg(const char *fg);
 void setCurrentBg(const char *bg);
+void setDefaultFg(const char *bg);
+void setDefaultBg(const char *bg);
