@@ -1,5 +1,7 @@
 # tmux-status
 
+https://github.com/user-attachments/assets/62c633a6-4831-4872-83d1-c4dc3cd6786c
+
 my tmux statusline, rendered with [tuie](https://github.com/jake-stewart/tuie).
 
 tmux calls this program on every redraw, passing the current pane and session
