@@ -1,26 +1,51 @@
+# tmux-status
 
-<img width="878" height="232" alt="Screenshot 2026-01-18 at 9 48 44 pm" src="https://github.com/user-attachments/assets/d43e2f73-f081-4d5c-b03f-ad1a9d9e7929" />
+https://github.com/user-attachments/assets/62c633a6-4831-4872-83d1-c4dc3cd6786c
 
-### usage
+my tmux statusline, rendered with [tuie](https://github.com/jake-stewart/tuie).
 
-1. run `cargo build --release && mkdir -p ~/.config/tmux && cp target/release/tmux-status ~/.config/tmux/status`.
-2. Add this to your tmux config and then reload/restart tmux:
+tmux calls this program on every redraw, passing the current pane and session
+state through flags, and displays the output markup.
+
+this repo should be easy to fork and make your own, with `statusline.rs` being
+a good place to start.
+
+### build
+
+```sh
+cargo build --release
+cp target/release/tmux-status ~/.config/tmux/status
+```
+
+the `tmux.conf` below assumes the binary lives at `~/.config/tmux/status`.
+
+### tmux.conf
 
 ```tmux
-set -g status-position "bottom"
-set -g status-interval 10
-set -g status-style ""
+Q="s/'/'\"'\"'/"  # escape quotes regex
 
-quote_regex="s/'/'\"'\"'/"
-window="'#{W:#{$quote_regex:window_name}#,}' '#{active_window_index}'"
-pane="'#{$quote_regex:pane_title}' '#{$quote_regex:pane_current_path}'"
-session="'#{session_id}' '#{$quote_regex:session_name}' '#{session_color}' '#{client_width}'"
-selection_y="'#{selection_start_y}' '#{selection_end_y}'"
-selection_x="'#{selection_start_x}' '#{selection_end_x}'"
-selection="$selection_y $selection_x"
-status_props="$pane $window $session $selection #{window_zoomed_flag}"
-status="~/.local/bin/tmux-status $status_props"
-set -g status-format[0] "#($status 0 0)"
-bind -n MouseDown1StatusDefault run "$status 1 '#{mouse_x}'"
-bind -n MouseDrag1StatusDefault run "$status 2 '#{mouse_x}'"
+# build the list of data our statusline needs. we must avoid
+# querying from the program directly as that can lead to stale data
+status="~/.config/tmux/status"
+status="$status #{W:--window '#{$Q:window_name}' }"
+status="$status --window-index '#{$Q:active_window_index}'"
+status="$status --pane-title '#{$Q:pane_title}'"
+status="$status --pane-path '#{$Q:pane_current_path}'"
+status="$status --session '#{$Q:session_name}'"
+status="$status --width '#{$Q:client_width}'"
+status="$status --height '#{$Q:client_height}'"
+status="$status --selection '#{$Q:selection_present}'"
+status="$status --selection-x '#{$Q:selection_start_x}' '#{$Q:selection_end_x}'"
+status="$status --selection-y '#{$Q:selection_start_y}' '#{$Q:selection_end_y}'"
+status="$status --zoomed '#{$Q:window_zoomed_flag}'"
+
+# set our tmux statusline format to the output of our program
+set -g status-format[0] "#($status)"
+
+# it can handle clicks and drags
+bind -n MouseDown1StatusDefault run "$status --click '#{mouse_x}'"
+bind -n MouseDrag1StatusDefault run "$status --drag '#{mouse_x}'"
 ```
+
+clicking the clock opens a calendar popup. blocks can spawn popups or trigger
+any other custom behaviour from their click handlers.
