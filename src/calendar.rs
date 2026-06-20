@@ -1,4 +1,4 @@
-use chrono::{Datelike, Local, NaiveDate};
+use chrono::{Datelike, Local, NaiveDate, Weekday};
 use tuie::prelude::*;
 
 use crate::options::Options;
@@ -6,9 +6,22 @@ use crate::popup;
 use crate::statusline::{ACCENT, CLOCK_TAG, create_right_row};
 use crate::tabs::Tabs;
 
-const WEEKDAYS: &str = "Su Mo Tu We Th Fr Sa";
+const WEEK_START: Weekday = Weekday::Sun;
+const LABELS: [&str; 7] = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const GRID_WIDTH: usize = 20;
 const CAL_WIDTH: i32 = 28;
+
+fn column(weekday: Weekday) -> usize {
+    (weekday.num_days_from_sunday() + 7 - WEEK_START.num_days_from_sunday()) as usize % 7
+}
+
+fn weekdays() -> String {
+    let start = WEEK_START.num_days_from_sunday() as usize;
+    (0..7)
+        .map(|i| LABELS[(start + i) % 7])
+        .collect::<Vec<_>>()
+        .join(" ")
+}
 
 fn days_in_month(year: i32, month: u32) -> u32 {
     let (next_year, next_month) =
@@ -22,7 +35,7 @@ fn days_in_month(year: i32, month: u32) -> u32 {
 
 fn weeks(year: i32, month: u32) -> Vec<[Option<u32>; 7]> {
     let first = NaiveDate::from_ymd_opt(year, month, 1).unwrap();
-    let mut col = first.weekday().num_days_from_sunday() as usize;
+    let mut col = column(first.weekday());
     let mut weeks = Vec::new();
     let mut week = [None; 7];
     for day in 1..=days_in_month(year, month) {
@@ -81,7 +94,7 @@ impl Calendar {
         inner.add_child(
             Text::new().content(centered(&now.format("%B %Y").to_string())),
         );
-        inner.add_child(Text::new().content(WEEKDAYS));
+        inner.add_child(Text::new().content(weekdays()));
         for week in &weeks {
             inner.add_child(Text::new().content(week_row(week, today, ACCENT)));
         }
