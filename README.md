@@ -39,12 +39,12 @@ status="$status --selection-x '#{$Q:selection_start_x}' '#{$Q:selection_end_x}'"
 status="$status --selection-y '#{$Q:selection_start_y}' '#{$Q:selection_end_y}'"
 status="$status --zoomed '#{$Q:window_zoomed_flag}'"
 
-# set our tmux statusline format to the output of our program
-set -g status-format[0] "#($status)"
+set -g status-format[0] "#($status --line 0)"
+set -g status-format[1] "#($status --line 1)"
 
 # it can handle clicks and drags
-bind -n MouseDown1StatusDefault run "$status --click '#{mouse_x}'"
-bind -n MouseDrag1StatusDefault run "$status --drag '#{mouse_x}'"
+bind -n MouseDown1StatusDefault run "$status --click '#{mouse_x}' --line '#{mouse_status_line}'"
+bind -n MouseDrag1StatusDefault run "$status --drag '#{mouse_x}' --line '#{mouse_status_line}'"
 ```
 
 clicking the clock opens a calendar popup. blocks can spawn popups or trigger

@@ -15,6 +15,7 @@ pub enum Action {
 
 pub struct Options {
     pub action: Action,
+    pub line: usize,
     pub pane_title: String,
     pub pane_path: String,
     pub windows: Vec<(usize, String)>,
@@ -30,6 +31,7 @@ impl Default for Options {
     fn default() -> Self {
         Self {
             action: Action::Render,
+            line: 0,
             pane_title: String::new(),
             pane_path: String::new(),
             windows: Vec::new(),
@@ -62,6 +64,7 @@ impl Options {
                     options.action = Action::OpenCalendar
                 }
                 Flag("calendar") => options.action = Action::Calendar,
+                Flag("line") => options.line = parser.parse_value()?,
                 Flag("click") => {
                     options.action = Action::Click(parser.parse_value()?)
                 }

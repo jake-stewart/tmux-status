@@ -6,7 +6,7 @@ use tuie::prelude::*;
 use crate::block::Block;
 use crate::blockrow::{BlockRow, Row};
 use crate::powerline::Powerline;
-use crate::render::{Clickable, build_root};
+use crate::render::{Clickable, MIN_SPACING, build_root};
 
 fn spawn_tmux_command(args: &[&str]) {
     Command::new("tmux").args(args).spawn().ok();
@@ -65,6 +65,54 @@ impl<'a> Tabs<'a> {
     pub fn bar_bg(mut self, color: Color) -> Self {
         self.bar_bg = color;
         self
+    }
+
+    pub fn line(&self, start: usize, len: usize) -> Tabs<'a> {
+        Tabs {
+            active: self.active,
+            windows: &self.windows[start..start + len],
+            active_style: self.active_style,
+            separator: self.separator,
+            bar_bg: self.bar_bg,
+            fill: self.fill,
+            divider: self.divider,
+            enclose: self.enclose,
+        }
+    }
+
+    pub fn partition(
+        &self,
+        width: usize,
+        rhs_width: usize,
+        max_lines: usize,
+    ) -> Vec<usize> {
+        let n = self.windows.len();
+        let mut counts = Vec::new();
+        let mut start = 0;
+        let mut last_w = 0;
+        while start < n && counts.len() < max_lines {
+            if counts.len() + 1 == max_lines {
+                counts.push(n - start);
+                start = n;
+                break;
+            }
+            let rest = n - start;
+            let widths = self.line(start, rest).row().prefix_widths();
+            let mut k = 1;
+            while k < rest && widths[k + 1] <= width {
+                k += 1;
+            }
+            last_w = widths[k];
+            counts.push(k);
+            start += k;
+        }
+        if counts.is_empty() {
+            counts.push(0);
+        }
+        if last_w + rhs_width + MIN_SPACING > width && counts.len() < max_lines {
+            counts.push(0);
+        }
+        counts
     }
 
     pub fn row(&self) -> Row {

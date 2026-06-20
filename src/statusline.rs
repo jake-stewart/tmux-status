@@ -18,6 +18,7 @@ pub const ACCENT: Color = Color::BLUE;
 const POWERLINE_FILL: Powerline = Powerline::BLOCK;
 const POWERLINE_DIVIDER: Powerline = Powerline::BLOCK;
 const ENCLOSE_ACTIVE: bool = false;
+const MAX_LINES: usize = 2;
 
 fn get_git_branch(pane_path: &str) -> String {
     Command::new("git")
@@ -120,6 +121,44 @@ fn path_block(pane_path: &str) -> Block {
     }
 }
 
+fn empty_row(bar_bg: Color) -> Row {
+    BlockRow::new(bar_bg).row()
+}
+
+fn current_status_lines() -> usize {
+    Command::new("tmux")
+        .args(["show", "-gv", "status"])
+        .output()
+        .ok()
+        .map(|output| {
+            String::from_utf8_lossy(&output.stdout).trim().to_string()
+        })
+        .map_or(1, |value| match value.as_str() {
+            "off" => 0,
+            "on" => 1,
+            other => other.parse().unwrap_or(1),
+        })
+}
+
+fn set_status_lines(n: usize) {
+    let value = match n {
+        0 => "off".to_string(),
+        1 => "on".to_string(),
+        other => other.to_string(),
+    };
+    Command::new("tmux")
+        .args(["set", "-g", "status", &value])
+        .spawn()
+        .ok();
+}
+
+fn line_offset(counts: &[usize], line: usize) -> Option<(usize, usize)> {
+    if line >= counts.len() {
+        return None;
+    }
+    Some((counts[..line].iter().sum(), counts[line]))
+}
+
 pub fn render(config: &Options) -> std::io::Result<std::process::ExitCode> {
     if config.session_title == POPUP_SESSION {
         return Ok(std::process::ExitCode::SUCCESS);
@@ -131,6 +170,7 @@ pub fn render(config: &Options) -> std::io::Result<std::process::ExitCode> {
         Color::grey256(2)
     };
     let width = config.client_size.x;
+    let cap = MAX_LINES.clamp(1, 5);
     let tabs = Tabs::new(config.window_idx, &config.windows)
         .active_style(Style::new().fg(Color::grey256(0)).bg(ACCENT).bold())
         .families(&POWERLINE_FILL, &POWERLINE_DIVIDER)
@@ -138,18 +178,36 @@ pub fn render(config: &Options) -> std::io::Result<std::process::ExitCode> {
         .separator(Style::new().fg(Color::grey256(6)))
         .bar_bg(bar_bg);
 
+    let right = create_right_row(config, bar_bg);
+    let counts = tabs.partition(width, right.width(), cap);
+
+    if config.line == 0 && cap > 1 && current_status_lines() != counts.len() {
+        set_status_lines(counts.len());
+    }
+
+    let Some((start, len)) = line_offset(&counts, config.line) else {
+        if matches!(config.action, Action::Render) {
+            print!(
+                "{}",
+                render::emit(empty_row(bar_bg), empty_row(bar_bg), width)
+            );
+        }
+        return Ok(std::process::ExitCode::SUCCESS);
+    };
+
+    let line_tabs = tabs.line(start, len);
+    let line_right = if config.line == counts.len() - 1 {
+        right
+    } else {
+        empty_row(bar_bg)
+    };
+
     match config.action {
-        Action::Drag(mouse_x) => tabs.drag(bar_bg, width, mouse_x),
-        Action::Click(mouse_x) => render::click(
-            tabs.row(),
-            create_right_row(config, bar_bg),
-            width,
-            mouse_x,
-        ),
-        _ => print!(
-            "{}",
-            render::emit(tabs.row(), create_right_row(config, bar_bg), width)
-        ),
+        Action::Drag(mouse_x) => line_tabs.drag(bar_bg, width, mouse_x),
+        Action::Click(mouse_x) => {
+            render::click(line_tabs.row(), line_right, width, mouse_x)
+        }
+        _ => print!("{}", render::emit(line_tabs.row(), line_right, width)),
     }
 
     Ok(std::process::ExitCode::SUCCESS)
