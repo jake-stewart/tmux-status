@@ -17,7 +17,7 @@ pub struct Options {
     pub action: Action,
     pub pane_title: String,
     pub pane_path: String,
-    pub windows: Vec<String>,
+    pub windows: Vec<(usize, String)>,
     pub window_idx: usize,
     pub session_title: String,
     pub client_size: Vec2<usize>,
@@ -75,7 +75,9 @@ impl Options {
                     options.pane_path = parser.parse_value()?
                 }
                 Flag("window") => {
-                    options.windows.push(parser.parse_value()?)
+                    let idx = parser.parse_value()?;
+                    let name = parser.parse_value()?;
+                    options.windows.push((idx, name));
                 }
                 Flag("window-index") => {
                     options.window_idx = parser.parse_value()?

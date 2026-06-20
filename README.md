@@ -27,7 +27,7 @@ Q="s/'/'\"'\"'/"  # escape quotes regex
 # build the list of data our statusline needs. we must avoid
 # querying from the program directly as that can lead to stale data
 status="~/.config/tmux/status"
-status="$status #{W:--window '#{$Q:window_name}' }"
+status="$status #{W:--window '#{$Q:window_index}' '#{$Q:window_name}' }"
 status="$status --window-index '#{$Q:active_window_index}'"
 status="$status --pane-title '#{$Q:pane_title}'"
 status="$status --pane-path '#{$Q:pane_current_path}'"

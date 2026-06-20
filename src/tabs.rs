@@ -14,7 +14,7 @@ fn spawn_tmux_command(args: &[&str]) {
 
 pub struct Tabs<'a> {
     active: usize,
-    windows: &'a [String],
+    windows: &'a [(usize, String)],
     active_style: Style,
     separator: Style,
     bar_bg: Color,
@@ -24,7 +24,7 @@ pub struct Tabs<'a> {
 }
 
 impl<'a> Tabs<'a> {
-    pub fn new(active: usize, windows: &'a [String]) -> Self {
+    pub fn new(active: usize, windows: &'a [(usize, String)]) -> Self {
         Self {
             active,
             windows,
@@ -72,8 +72,9 @@ impl<'a> Tabs<'a> {
             .families(self.fill, self.divider)
             .enclose(self.enclose)
             .separator(self.separator);
-        for (idx, name) in self.windows.iter().enumerate() {
-            row = if idx == self.active {
+        for (win_idx, name) in self.windows.iter() {
+            let win_idx = *win_idx;
+            row = if win_idx == self.active {
                 row.active(name.clone(), self.active_style)
             } else {
                 row.push(Block::new().span(name.clone(), Style::new()).on_click(
@@ -81,7 +82,7 @@ impl<'a> Tabs<'a> {
                         spawn_tmux_command(&[
                             "select-window",
                             "-t",
-                            &idx.to_string(),
+                            &win_idx.to_string(),
                         ]);
                     },
                 ))
@@ -112,18 +113,24 @@ impl<'a> Tabs<'a> {
                 .map(|w| w.get_rect())
         };
 
-        let Some(src) = rect(self.active) else {
+        let Some(active_pos) =
+            self.windows.iter().position(|(idx, _)| *idx == self.active)
+        else {
+            return;
+        };
+
+        let Some(src) = rect(active_pos) else {
             return;
         };
         let src_x = src.pos.x.max(0) as usize;
         let active_length = src.size.x as usize;
 
-        for idx in 0..tabs.len() {
-            if idx == self.active {
+        for pos in 0..tabs.len() {
+            if pos == active_pos {
                 continue;
             }
 
-            let Some(rect) = rect(idx) else {
+            let Some(rect) = rect(pos) else {
                 continue;
             };
             let target_x = rect.pos.x.max(0) as usize;
@@ -133,17 +140,22 @@ impl<'a> Tabs<'a> {
                 continue;
             }
 
+            let Some((win_idx, _)) = self.windows.get(pos) else {
+                continue;
+            };
+            let win_idx = win_idx.to_string();
+
             if target_x < src_x {
                 if mouse_x < src_x + active_length - target_length {
                     spawn_tmux_command(&[
                         "move-window",
                         "-b",
                         "-t",
-                        &idx.to_string(),
+                        &win_idx,
                     ]);
                 }
             } else if mouse_x >= src_x + target_length {
-                spawn_tmux_command(&["move-window", "-a", "-t", &idx.to_string()]);
+                spawn_tmux_command(&["move-window", "-a", "-t", &win_idx]);
             }
             return;
         }
