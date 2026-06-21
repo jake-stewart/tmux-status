@@ -8,7 +8,7 @@ use crate::tabs::Tabs;
 
 const WEEK_START: Weekday = Weekday::Sun;
 const LABELS: [&str; 7] = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
-const GRID_WIDTH: usize = 20;
+const GRID_WIDTH: usize = 21;
 const CAL_WIDTH: i32 = 28;
 
 fn column(weekday: Weekday) -> usize {
@@ -17,10 +17,7 @@ fn column(weekday: Weekday) -> usize {
 
 fn weekdays() -> String {
     let start = WEEK_START.num_days_from_sunday() as usize;
-    (0..7)
-        .map(|i| LABELS[(start + i) % 7])
-        .collect::<Vec<_>>()
-        .join(" ")
+    (0..7).map(|i| format!(" {}", LABELS[(start + i) % 7])).collect()
 }
 
 fn days_in_month(year: i32, month: u32) -> u32 {
@@ -60,7 +57,8 @@ fn centered(text: &str) -> String {
 
 fn week_row(week: &[Option<u32>; 7], today: Option<u32>, color: Color) -> StyledString {
     let mut row = StyledString::new();
-    for (col, day) in week.iter().enumerate() {
+    let mut capped = false;
+    for day in week.iter() {
         let cell = match day {
             Some(n) => format!("{:>2}", n),
             None => "  ".to_string(),
@@ -70,11 +68,13 @@ fn week_row(week: &[Option<u32>; 7], today: Option<u32>, color: Color) -> Styled
                 .span(StyledStr::new("▐").fg(color))
                 .span(StyledStr::new(&cell).fg(Color::grey256(0)).bg(color).bold())
                 .span(StyledStr::new("▌").fg(color));
+            capped = true;
         } else {
-            if col > 0 && week[col - 1] != today {
+            if !capped {
                 row = row.span(" ");
             }
             row = row.span(cell.as_str());
+            capped = false;
         }
     }
     row
@@ -90,7 +90,7 @@ impl Calendar {
         let today = Some(now.day());
         let weeks = weeks(now.year(), now.month());
 
-        let mut inner = Pane::new().vertical().horizontal_padding(3);
+        let mut inner = Pane::new().vertical().horizontal_padding(2);
         inner.add_child(
             Text::new().content(centered(&now.format("%B %Y").to_string())),
         );
